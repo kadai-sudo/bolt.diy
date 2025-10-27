@@ -114,6 +114,11 @@ export default defineConfig((config) => {
         buffer: 'vite-plugin-node-polyfills/polyfills/buffer',
       },
     },
+    server: {
+       allowedHosts: [
+        "ec2-56-155-141-104.ap-northeast-3.compute.amazonaws.com"
+      ]
+    },
     plugins: [
       nodePolyfills({
         include: ['buffer', 'process', 'util', 'stream'],

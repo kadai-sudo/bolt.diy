@@ -49,12 +49,15 @@ ENV WRANGLER_SEND_METRICS=false \
     AWS_BEDROCK_CONFIG=${AWS_BEDROCK_CONFIG} \
     VITE_LOG_LEVEL=${VITE_LOG_LEVEL} \
     DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX}\
-    RUNNING_IN_DOCKER=true
+    RUNNING_IN_DOCKER=true\
+    VITE_GITHUB_ACCESS_TOKEN=${VITE_GITHUB_ACCESS_TOKEN} \
+    VITE_GITHUB_TOKEN_TYPE=${VITE_GITHUB_TOKEN_TYPE}
 
 # Pre-configure wrangler to disable metrics
 RUN mkdir -p /root/.config/.wrangler && \
     echo '{"enabled":false}' > /root/.config/.wrangler/metrics.json
 
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN pnpm run build
 
 CMD [ "pnpm", "run", "dockerstart"]

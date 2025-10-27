@@ -24,25 +24,25 @@ export default class AmazonBedrockProvider extends BaseProvider {
       name: 'anthropic.claude-3-5-sonnet-20241022-v2:0',
       label: 'Claude 3.5 Sonnet v2 (Bedrock)',
       provider: 'AmazonBedrock',
-      maxTokenAllowed: 200000,
+      maxTokenAllowed: 8192,
     },
     {
       name: 'anthropic.claude-3-5-sonnet-20240620-v1:0',
       label: 'Claude 3.5 Sonnet (Bedrock)',
       provider: 'AmazonBedrock',
-      maxTokenAllowed: 4096,
+      maxTokenAllowed: 32768,
     },
     {
       name: 'anthropic.claude-3-sonnet-20240229-v1:0',
       label: 'Claude 3 Sonnet (Bedrock)',
       provider: 'AmazonBedrock',
-      maxTokenAllowed: 4096,
+      maxTokenAllowed: 32768,
     },
     {
       name: 'anthropic.claude-3-haiku-20240307-v1:0',
       label: 'Claude 3 Haiku (Bedrock)',
       provider: 'AmazonBedrock',
-      maxTokenAllowed: 4096,
+      maxTokenAllowed: 32768,
     },
     {
       name: 'amazon.nova-pro-v1:0',
@@ -60,7 +60,7 @@ export default class AmazonBedrockProvider extends BaseProvider {
       name: 'mistral.mistral-large-2402-v1:0',
       label: 'Mistral Large 24.02 (Bedrock)',
       provider: 'AmazonBedrock',
-      maxTokenAllowed: 8192,
+      maxTokenAllowed: 32768,
     },
   ];
 
