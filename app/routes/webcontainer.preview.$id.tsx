@@ -82,8 +82,8 @@ export default function WebContainerPreview() {
         ref={iframeRef}
         title="WebContainer Preview"
         className="w-full h-full border-none"
-        sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
-        allow="cross-origin-isolated"
+        sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin allow-downloads allow-top-navigation-by-user-activation"
+        allow="clipboard-write clipboard-read fullscreen geolocation camera microphone display-capture accelerometer gyroscope magnetometer midi payment usb hid serial window-management storage-access cross-origin-isolated autoplay"
         loading="eager"
         onLoad={notifyPreviewReady}
       />

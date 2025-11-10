@@ -115,9 +115,13 @@ export default defineConfig((config) => {
       },
     },
     server: {
-       allowedHosts: [
-        "ec2-56-155-141-104.ap-northeast-3.compute.amazonaws.com"
-      ]
+      allowedHosts: ['ec2-56-155-141-104.ap-northeast-3.compute.amazonaws.com'],
+      watch: {
+        ignored: ['**/.git/**'], // ← これを追加！
+      },
+      hmr: {
+        overlay: true, // （必要なら false にもできる）
+      },
     },
     plugins: [
       nodePolyfills({
