@@ -1,5 +1,6 @@
 services:
   app-prod:
+    container_name: bolt-prod
     image: bolt-ai:production
     build:
       context: .
@@ -34,6 +35,7 @@ services:
       - production
 
   app-dev:
+    container_name: bolt-dev
     image: bolt-ai:development
     build:
       target: bolt-ai-development

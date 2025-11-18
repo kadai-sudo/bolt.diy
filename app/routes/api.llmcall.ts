@@ -9,6 +9,8 @@ import type { ModelInfo } from '~/lib/modules/llm/types';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { createScopedLogger } from '~/utils/logger';
 
+import { loadDynamicMcpTools } from '~/lib/mcp/dynamicTools';
+
 export async function action(args: ActionFunctionArgs) {
   return llmCallAction(args);
 }
@@ -125,8 +127,9 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
           apiKeys,
           providerSettings,
         }),
+        tools: await loadDynamicMcpTools(),
         maxTokens: dynamicMaxTokens,
-        toolChoice: 'none',
+        toolChoice: 'auto',
       });
       logger.info(`Generated response`);
 

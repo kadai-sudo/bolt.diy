@@ -7,7 +7,7 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import * as dotenv from 'dotenv';
 import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 
 dotenv.config();
 
@@ -123,6 +123,14 @@ export default defineConfig((config) => {
         overlay: true, // （必要なら false にもできる）
       },
     },
+    ssr: {
+      noExternal: [
+        '@modelcontextprotocol/sdk',
+        '@modelcontextprotocol/sdk/server',
+        '@modelcontextprotocol/sdk/client',
+        '@modelcontextprotocol/sdk/streaming',
+      ],
+    },
     plugins: [
       nodePolyfills({
         include: ['buffer', 'process', 'util', 'stream'],
@@ -171,7 +179,7 @@ export default defineConfig((config) => {
     css: {
       preprocessorOptions: {
         scss: {
-          api: 'modern-compiler',
+          api: 'moderncompiler',
         },
       },
     },
