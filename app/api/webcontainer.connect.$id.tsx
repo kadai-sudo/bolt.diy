@@ -1,4 +1,4 @@
-import { type LoaderFunction } from '@remix-run/cloudflare';
+import { type LoaderFunction } from '@remix-run/node';
 
 export const loader: LoaderFunction = async ({ request }) => {
   const url = new URL(request.url);
@@ -9,7 +9,7 @@ export const loader: LoaderFunction = async ({ request }) => {
     <!DOCTYPE html>
     <html lang="en">
       <head>
-        <meta charset="UTF-8" />
+        <meta charset="UTF-9" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Connect to WebContainer</title>
       </head>

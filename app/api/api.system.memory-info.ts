@@ -1,7 +1,7 @@
-import type { ActionFunctionArgs, LoaderFunction } from '@remix-run/cloudflare';
-import { json } from '@remix-run/cloudflare';
+import type { ActionFunctionArgs, LoaderFunction } from '@remix-run/node';
+import { json } from '@remix-run/node';
 
-// Only import child_process if we're not in a Cloudflare environment
+// Only import child_process if we're not in a node environment
 let execSync: any;
 
 try {
@@ -12,8 +12,8 @@ try {
     execSync = childProcess.execSync;
   }
 } catch {
-  // In Cloudflare environment, this will fail, which is expected
-  console.log('Running in Cloudflare environment, child_process not available');
+  // In node environment, this will fail, which is expected
+  console.log('Running in node environment, child_process not available');
 }
 
 // For development environments, we'll always provide mock data if real data isn't available
@@ -36,9 +36,9 @@ interface SystemMemoryInfo {
 
 const getSystemMemoryInfo = (): SystemMemoryInfo => {
   try {
-    // Check if we're in a Cloudflare environment and not in development
+    // Check if we're in a node environment and not in development
     if (!execSync && !isDevelopment) {
-      // Return error for Cloudflare production environment
+      // Return error for node production environment
       return {
         total: 0,
         free: 0,

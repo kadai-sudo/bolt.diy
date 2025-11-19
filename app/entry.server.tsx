@@ -1,4 +1,6 @@
-import type { AppLoadContext } from '@remix-run/cloudflare';
+// entry.server.tsx (Node mode)
+
+import type { AppLoadContext } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
 import { isbot } from 'isbot';
 import { renderToReadableStream } from 'react-dom/server';
@@ -11,10 +13,8 @@ export default async function handleRequest(
   responseStatusCode: number,
   responseHeaders: Headers,
   remixContext: any,
-  _loadContext: AppLoadContext,
+  _loadContext: AppLoadContext, // Node: Cloudflare 不要
 ) {
-  // await initializeModelList({});
-
   const readable = await renderToReadableStream(<RemixServer context={remixContext} url={request.url} />, {
     signal: request.signal,
     onError(error: unknown) {
@@ -28,10 +28,8 @@ export default async function handleRequest(
       const head = renderHeadToString({ request, remixContext, Head });
 
       controller.enqueue(
-        new Uint8Array(
-          new TextEncoder().encode(
-            `<!DOCTYPE html><html lang="en" data-theme="${themeStore.value}"><head>${head}</head><body><div id="root" class="w-full h-full">`,
-          ),
+        new TextEncoder().encode(
+          `<!DOCTYPE html><html lang="en" data-theme="${themeStore.value}"><head>${head}</head><body><div id="root" class="w-full h-full">`,
         ),
       );
 
@@ -42,12 +40,10 @@ export default async function handleRequest(
           .read()
           .then(({ done, value }) => {
             if (done) {
-              controller.enqueue(new Uint8Array(new TextEncoder().encode('</div></body></html>')));
+              controller.enqueue(new TextEncoder().encode('</div></body></html>'));
               controller.close();
-
               return;
             }
-
             controller.enqueue(value);
             read();
           })
@@ -69,7 +65,6 @@ export default async function handleRequest(
   }
 
   responseHeaders.set('Content-Type', 'text/html');
-
   responseHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
   responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
 

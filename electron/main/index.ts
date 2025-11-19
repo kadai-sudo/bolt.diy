@@ -29,6 +29,7 @@ process.on('unhandledRejection', async (error) => {
   console.log('Unhandled Rejection:', error);
 });
 
+// Set Electron paths (unchanged)
 (() => {
   const root = global.process.env.APP_PATH_ROOT ?? import.meta.env.VITE_APP_PATH_ROOT;
 
@@ -63,8 +64,16 @@ const keys: Parameters<typeof app.getPath>[number][] = ['home', 'appData', 'user
 keys.forEach((key) => console.log(`${key}:`, app.getPath(key)));
 console.log('start whenReady');
 
+// Node 用の Cloudflare 互換 context を作成
+function createNodeContext() {
+  return {
+    cloudflare: {
+      env: process.env as Record<string, string>, // Node の環境変数を Cloudflare env として渡す
+    },
+  };
+}
+
 declare global {
-  // eslint-disable-next-line no-var, @typescript-eslint/naming-convention
   var __electron__: typeof electron;
 }
 
@@ -72,78 +81,49 @@ declare global {
   await app.whenReady();
   console.log('App is ready');
 
-  // Load any existing cookies from ElectronStore, set as cookie
   await initCookies();
 
   const serverBuild = await loadServerBuild();
 
+  // --- protocol handler (重要修正済み) ---
   protocol.handle('http', async (req) => {
-    console.log('Handling request for:', req.url);
-
-    if (isDev) {
-      console.log('Dev mode: forwarding to vite server');
-      return await fetch(req);
-    }
-
-    req.headers.append('Referer', req.referrer);
-
     try {
+      console.log('Handling request for:', req.url);
+
+      if (isDev) {
+        return await fetch(req); // Dev 時は Vite に投げる
+      }
+
       const url = new URL(req.url);
 
-      // Forward requests to specific local server ports
+      // Forward to external ports
       if (url.port !== `${DEFAULT_PORT}`) {
-        console.log('Forwarding request to local server:', req.url);
         return await fetch(req);
       }
 
-      // Always try to serve asset first
+      // Serve static assets
       const assetPath = path.join(app.getAppPath(), 'build', 'client');
       const res = await serveAsset(req, assetPath);
 
-      if (res) {
-        console.log('Served asset:', req.url);
-        return res;
-      }
+      if (res) return res;
 
-      // Forward all cookies to remix server
+      // Cookie を Remix に渡す
       const cookies = await session.defaultSession.cookies.get({});
-
       if (cookies.length > 0) {
         req.headers.set('Cookie', cookies.map((c) => `${c.name}=${c.value}`).join('; '));
-
-        // Store all cookies
         await storeCookies(cookies);
       }
 
-      // Create request handler with the server build
+      // Node/Electron 互換 context を生成
+      const context = createNodeContext();
+
+      // Remix request handler を Node 用に呼び出し
       const handler = createRequestHandler(serverBuild, 'production');
-      console.log('Handling request with server build:', req.url);
-
-      const result = await handler(req, {
-        /*
-         * Remix app access cloudflare.env
-         * Need to pass an empty object to prevent undefined
-         */
-        // @ts-ignore:next-line
-        cloudflare: {},
-      });
-
-      return result;
+      return await handler(req, context);
     } catch (err) {
-      console.log('Error handling request:', {
-        url: req.url,
-        error:
-          err instanceof Error
-            ? {
-                message: err.message,
-                stack: err.stack,
-                cause: err.cause,
-              }
-            : err,
-      });
+      console.log('Error handling request:', err);
 
       const error = err instanceof Error ? err : new Error(String(err));
-
       return new Response(`Error handling request to ${req.url}: ${error.stack ?? error.message}`, {
         status: 500,
         headers: { 'content-type': 'text/plain' },
@@ -151,18 +131,16 @@ declare global {
     }
   });
 
+  // --- Renderer URL ---
   const rendererURL = await (isDev
     ? (async () => {
         await initViteServer();
 
-        if (!viteServer) {
-          throw new Error('Vite server is not initialized');
-        }
+        if (!viteServer) throw new Error('Vite server is not initialized');
 
         const listen = await viteServer.listen();
         global.__electron__ = electron;
         viteServer.printUrls();
-
         return `http://localhost:${listen.config.server.port}`;
       })()
     : `http://localhost:${DEFAULT_PORT}`);
@@ -177,24 +155,19 @@ declare global {
     }
   });
 
-  console.log('end whenReady');
-
   return win;
 })()
   .then((win) => {
-    // IPC samples : send and recieve.
+    // IPC
     let count = 0;
     setInterval(() => win.webContents.send('ping', `hello from main! ${count++}`), 60 * 1000);
     ipcMain.handle('ipcTest', (event, ...args) => console.log('ipc: renderer -> main', { event, ...args }));
-
     return win;
   })
   .then((win) => setupMenu(win));
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  if (process.platform !== 'darwin') app.quit();
 });
 
 reloadOnChange();

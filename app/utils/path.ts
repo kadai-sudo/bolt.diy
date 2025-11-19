@@ -1,19 +1,21 @@
-// Browser-compatible path utilities
+import path from 'path';
 import type { ParsedPath } from 'path';
-import pathBrowserify from 'path-browserify';
 
 /**
- * A browser-compatible path utility that mimics Node's path module
- * Using path-browserify for consistent behavior in browser environments
+ * Node.js 専用の path ユーティリティ
+ * path-browserify を使わず、Node の純正 path モジュールを利用
  */
-export const path = {
-  join: (...paths: string[]): string => pathBrowserify.join(...paths),
-  dirname: (path: string): string => pathBrowserify.dirname(path),
-  basename: (path: string, ext?: string): string => pathBrowserify.basename(path, ext),
-  extname: (path: string): string => pathBrowserify.extname(path),
-  relative: (from: string, to: string): string => pathBrowserify.relative(from, to),
-  isAbsolute: (path: string): boolean => pathBrowserify.isAbsolute(path),
-  normalize: (path: string): string => pathBrowserify.normalize(path),
-  parse: (path: string): ParsedPath => pathBrowserify.parse(path),
-  format: (pathObject: ParsedPath): string => pathBrowserify.format(pathObject),
+export const pathUtils = {
+  join: (...paths: string[]): string => path.join(...paths),
+  dirname: (p: string): string => path.dirname(p),
+  basename: (p: string, ext?: string): string => path.basename(p, ext),
+  extname: (p: string): string => path.extname(p),
+  relative: (from: string, to: string): string => path.relative(from, to),
+  isAbsolute: (p: string): boolean => path.isAbsolute(p),
+  normalize: (p: string): string => path.normalize(p),
+  parse: (p: string): ParsedPath => path.parse(p),
+  format: (pathObject: ParsedPath): string => path.format(pathObject),
 } as const;
+
+// 必要に応じてデフォルトエクスポートも可能
+export default pathUtils;

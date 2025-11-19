@@ -1,6 +1,15 @@
-import type { LoaderFunction } from '@remix-run/cloudflare';
+import type { LoaderFunction } from '@remix-run/node';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
+
+// Node.js の場合 context.cloudflare.env が無いので安全に取り出す
+function getEnv(context: any): Record<string, any> {
+  return (
+    context?.cloudflare?.env || // Cloudflare Workers
+    process.env || // Node.js / Docker
+    {} // fallback
+  );
+}
 
 export const loader: LoaderFunction = async ({ context, request }) => {
   const url = new URL(request.url);
@@ -10,7 +19,10 @@ export const loader: LoaderFunction = async ({ context, request }) => {
     return Response.json({ isSet: false });
   }
 
-  const llmManager = LLMManager.getInstance(context?.cloudflare?.env as any);
+  const env = getEnv(context);
+
+  // LLM Manager を Cloudflare / Node 両対応で初期化
+  const llmManager = LLMManager.getInstance(env);
   const providerInstance = llmManager.getProvider(provider);
 
   if (!providerInstance || !providerInstance.config.apiTokenKey) {
@@ -19,22 +31,15 @@ export const loader: LoaderFunction = async ({ context, request }) => {
 
   const envVarName = providerInstance.config.apiTokenKey;
 
-  // Get API keys from cookie
+  // cookies → context.env → process.env → manager.env の順に探す
   const cookieHeader = request.headers.get('Cookie');
   const apiKeys = getApiKeysFromCookie(cookieHeader);
 
-  /*
-   * Check API key in order of precedence:
-   * 1. Client-side API keys (from cookies)
-   * 2. Server environment variables (from Cloudflare env)
-   * 3. Process environment variables (from .env.local)
-   * 4. LLMManager environment variables
-   */
   const isSet = !!(
     apiKeys?.[provider] ||
-    (context?.cloudflare?.env as Record<string, any>)?.[envVarName] ||
-    process.env[envVarName] ||
-    llmManager.env[envVarName]
+    env?.[envVarName] || // context.cloudflare.env or process.env
+    process.env[envVarName] || // safety: Node direct
+    llmManager.env?.[envVarName]
   );
 
   return Response.json({ isSet });

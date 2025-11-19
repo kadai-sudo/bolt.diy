@@ -1,17 +1,18 @@
-import { cloudflareDevProxyVitePlugin as remixCloudflareDevProxy, vitePlugin as remixVitePlugin } from '@remix-run/dev';
+import { vitePlugin as remixVitePlugin } from '@remix-run/dev';
 import UnoCSS from 'unocss/vite';
-import { defineConfig, type ViteDevServer } from 'vite';
-import { nodePolyfills } from 'vite-plugin-node-polyfills';
-import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
+import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import * as dotenv from 'dotenv';
 import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
-import { join, resolve } from 'path';
+import { join } from 'path';
 
 dotenv.config();
 
-// Get detailed git info with fallbacks
+// ----------------------------------
+// Git 情報取得
+// ----------------------------------
 const getGitInfo = () => {
   try {
     return {
@@ -40,12 +41,13 @@ const getGitInfo = () => {
   }
 };
 
-// Read package.json with detailed dependency info
+// ----------------------------------
+// package.json 情報取得
+// ----------------------------------
 const getPackageJson = () => {
   try {
     const pkgPath = join(process.cwd(), 'package.json');
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
-
     return {
       name: pkg.name,
       description: pkg.description,
@@ -58,7 +60,7 @@ const getPackageJson = () => {
   } catch {
     return {
       name: 'bolt.diy',
-      description: 'A DIY LLM interface',
+      description: 'DIY LLM interface',
       license: 'MIT',
       dependencies: {},
       devDependencies: {},
@@ -71,7 +73,10 @@ const getPackageJson = () => {
 const pkg = getPackageJson();
 const gitInfo = getGitInfo();
 
-export default defineConfig((config) => {
+// ----------------------------------
+// Node/Electron で動かすための最適化済み Vite 設定
+// ----------------------------------
+export default defineConfig(({ mode }) => {
   return {
     define: {
       __COMMIT_HASH: JSON.stringify(gitInfo.commitHash),
@@ -91,38 +96,35 @@ export default defineConfig((config) => {
       __PKG_OPTIONAL_DEPENDENCIES: JSON.stringify(pkg.optionalDependencies),
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },
+
     build: {
       target: 'esnext',
+      commonjsOptions: {
+        transformMixedEsModules: true,
+      },
       rollupOptions: {
         output: {
           format: 'esm',
         },
       },
-      commonjsOptions: {
-        transformMixedEsModules: true,
-      },
     },
-    optimizeDeps: {
-      esbuildOptions: {
-        define: {
-          global: 'globalThis',
-        },
-      },
-    },
+
     resolve: {
       alias: {
-        buffer: 'vite-plugin-node-polyfills/polyfills/buffer',
+        util: 'node:util',
+        stream: 'node:stream',
+        buffer: 'node:buffer',
+        process: 'node:process',
       },
     },
-    server: {
-      allowedHosts: ['ec2-56-155-141-104.ap-northeast-3.compute.amazonaws.com'],
-      watch: {
-        ignored: ['**/.git/**'], // ← これを追加！
-      },
-      hmr: {
-        overlay: true, // （必要なら false にもできる）
+
+    optimizeDeps: {
+      exclude: ['undici'], // ← ★ util/types エラーの原因
+      esbuildOptions: {
+        define: { global: 'globalThis' },
       },
     },
+
     ssr: {
       noExternal: [
         '@modelcontextprotocol/sdk',
@@ -131,31 +133,20 @@ export default defineConfig((config) => {
         '@modelcontextprotocol/sdk/streaming',
       ],
     },
-    plugins: [
-      nodePolyfills({
-        include: ['buffer', 'process', 'util', 'stream'],
-        globals: {
-          Buffer: true,
-          process: true,
-          global: true,
-        },
-        protocolImports: true,
-        exclude: ['child_process', 'fs', 'path'],
-      }),
-      {
-        name: 'buffer-polyfill',
-        transform(code, id) {
-          if (id.includes('env.mjs')) {
-            return {
-              code: `import { Buffer } from 'buffer';\n${code}`,
-              map: null,
-            };
-          }
 
-          return null;
-        },
+    server: {
+      allowedHosts: ['*'],
+      watch: {
+        ignored: ['**/.git/**'],
       },
-      config.mode !== 'test' && remixCloudflareDevProxy(),
+      hmr: {
+        overlay: true,
+      },
+    },
+
+    plugins: [
+      UnoCSS(),
+      tsconfigPaths(),
       remixVitePlugin({
         future: {
           v3_fetcherPersist: true,
@@ -164,11 +155,9 @@ export default defineConfig((config) => {
           v3_lazyRouteDiscovery: true,
         },
       }),
-      UnoCSS(),
-      tsconfigPaths(),
-      chrome129IssuePlugin(),
-      config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
+      mode === 'production' && optimizeCssModules({ apply: 'build' }),
     ],
+
     envPrefix: [
       'VITE_',
       'OPENAI_LIKE_API_BASE_URL',
@@ -176,38 +165,11 @@ export default defineConfig((config) => {
       'LMSTUDIO_API_BASE_URL',
       'TOGETHER_API_BASE_URL',
     ],
+
     css: {
       preprocessorOptions: {
-        scss: {
-          api: 'moderncompiler',
-        },
+        scss: { api: 'modern-compiler' },
       },
     },
   };
 });
-
-function chrome129IssuePlugin() {
-  return {
-    name: 'chrome129IssuePlugin',
-    configureServer(server: ViteDevServer) {
-      server.middlewares.use((req, res, next) => {
-        const raw = req.headers['user-agent']?.match(/Chrom(e|ium)\/([0-9]+)\./);
-
-        if (raw) {
-          const version = parseInt(raw[2], 10);
-
-          if (version === 129) {
-            res.setHeader('content-type', 'text/html');
-            res.end(
-              '<body><h1>Please use Chrome Canary for testing.</h1><p>Chrome 129 has an issue with JavaScript modules & Vite local development, see <a href="https://github.com/stackblitz/bolt.new/issues/86#issuecomment-2395519258">for more information.</a></p><p><b>Note:</b> This only impacts <u>local development</u>. `pnpm run build` and `pnpm run start` will work fine in this browser.</p></body>',
-            );
-
-            return;
-          }
-        }
-
-        next();
-      });
-    },
-  };
-}
