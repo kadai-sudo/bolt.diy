@@ -1,6 +1,14 @@
 ARG BASE=node:20.18.0
 FROM ${BASE} AS base
 
+# Python + uv を追加
+RUN apt-get update \
+  && apt-get install -y curl python3 python3-pip \
+  && curl -LsSf https://astral.sh/uv/install.sh | sh \
+  && rm -rf /var/lib/apt/lists/*
+
+ENV PATH="/root/.local/bin:${PATH}"
+
 WORKDIR /app
 
 # Install dependencies (this step is cached as long as the dependencies don't change)

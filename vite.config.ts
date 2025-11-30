@@ -13,6 +13,14 @@ export default defineConfig((config) => {
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },
+    server: {
+      host: true,
+      allowedHosts: [
+        'localhost',
+        '127.0.0.1',
+        '.compute.amazonaws.com', // 全EC2ホスト名OK
+      ],
+    },
     build: {
       target: 'esnext',
     },
