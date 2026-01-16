@@ -191,6 +191,14 @@ export async function streamText(props: {
     console.log('No locked files found from any source for prompt.');
   }
 
+  systemPrompt = `${systemPrompt}
+
+When a tool invocation is auto-approved by the UI, and the result is delivered back to you,
+automatically continue the conversation. Do NOT wait for the user to respond.
+
+After receiving the tool result, immediately produce the next assistant message
+based on that result. Always continue reasoning forward on your own.
+`;
   logger.info(`Sending llm call to ${provider.name} with model ${modelDetails.name}`);
 
   // console.log(systemPrompt, processedMessages);

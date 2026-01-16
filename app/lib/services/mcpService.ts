@@ -27,6 +27,7 @@ export const stdioServerConfigSchema = z
     args: z.array(z.string()).optional(),
     cwd: z.string().optional(),
     env: z.record(z.string()).optional(),
+    autoApprove: z.array(z.string()).optional(),
   })
   .transform((data) => ({
     ...data,
@@ -363,12 +364,20 @@ export class MCPService {
       const serverName = this._toolNamesToServerNames.get(toolName);
 
       if (serverName) {
+        const serverConfig = this._config.mcpServers[serverName];
+
+        const autoApproved =
+          serverConfig.type === 'stdio'
+            ? serverConfig?.autoApprove?.includes('*') || serverConfig?.autoApprove?.includes(toolName)
+            : false;
+
         dataStream.writeMessageAnnotation({
           type: 'toolCall',
           toolCallId,
           serverName,
           toolName,
           toolDescription: description,
+          autoApproved: autoApproved || false,
         } satisfies ToolCallAnnotation);
       }
     }

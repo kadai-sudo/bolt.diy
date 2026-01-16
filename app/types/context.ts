@@ -23,4 +23,5 @@ export type ToolCallAnnotation = {
   serverName: string;
   toolName: string;
   toolDescription: string;
+  autoApproved: boolean | undefined;
 };
